@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Flow Connect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-cell: #1a1a25;
+      --bg-cell-hover: #252535;
+      --text-primary: #f0f0f5;
+      --text-secondary: #6a6a7a;
+      --accent: #4ecdc4;
+      --grid-line: #2a2a3a;
+      
+      /* Puzzle colors - jewel tones */
+      --color-1: #ff6b6b;
+      --color-2: #4ecdc4;
+      --color-3: #ffe66d;
+      --color-4: #95e1d3;
+      --color-5: #a29bfe;
+      --color-6: #fd79a8;
+      --color-7: #74b9ff;
+      --color-8: #ffeaa7;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(ellipse at 20% 20%, rgba(78, 205, 196, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(165, 94, 234, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(255, 107, 107, 0.05) 0%, transparent 70%);
+    }
+
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem;
+      max-width: 100vw;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      text-align: center;
+    }
+
+    .title {
+      font-size: clamp(1.8rem, 5vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .level-info {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    .stats {
+      display: flex;
+      gap: 2rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .stat-value {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .grid-wrapper {
+      position: relative;
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .grid {
+      display: grid;
+      gap: 4px;
+      position: relative;
+    }
+
+    .cell {
+      width: clamp(45px, 12vw, 65px);
+      height: clamp(45px, 12vw, 65px);
+      background: var(--bg-cell);
+      border-radius: 8px;
+      position: relative;
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+
+    .cell:hover {
+      background: var(--bg-cell-hover);
+    }
+
+    .endpoint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+      height: 60%;
+      border-radius: 50%;
+      box-shadow: 
+        0 0 20px var(--endpoint-color),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.9; }
+    }
+
+    .path-segment {
+      position: absolute;
+      pointer-events: none;
+      transition: opacity 0.1s ease;
+    }
+
+    .path-segment.horizontal {
+      height: 40%;
+      top: 30%;
+      border-radius: 4px;
+    }
+
+    .path-segment.vertical {
+      width: 40%;
+      left: 30%;
+      border-radius: 4px;
+    }
+
+    .path-segment.center {
+      width: 40%;
+      height: 40%;
+      top: 30%;
+      left: 30%;
+      border-radius: 4px;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      border-radius: 12px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #3db8b0 100%);
+      color: var(--bg-primary);
+      box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: var(--bg-cell);
+      color: var(--text-primary);
+      border: 1px solid var(--grid-line);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-cell-hover);
+    }
+
+    .level-select {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 400px;
+    }
+
+    .level-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      border: 2px solid var(--grid-line);
+      background: var(--bg-cell);
+      color: var(--text-primary);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .level-btn:hover {
+      border-color: var(--accent);
+      background: var(--bg-cell-hover);
+    }
+
+    .level-btn.completed {
+      background: linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(78, 205, 196, 0.1) 100%);
+      border-color: var(--accent);
+    }
+
+    .level-btn.current {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+    }
+
+    .completion-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      z-index: 100;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .completion-text {
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, #a29bfe 50%, #fd79a8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: celebrate 0.6s ease-out;
+    }
+
+    @keyframes celebrate {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .flow-count {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .flow-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      opacity: 0.3;
+      transition: all 0.3s ease;
+    }
+
+    .flow-indicator.complete {
+      opacity: 1;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .instructions {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-align: center;
+      max-width: 300px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      .game-container {
+        gap: 1rem;
+      }
+      
+      .stats {
+        gap: 1.5rem;
+      }
+
+      .controls {
+        flex-direction: column;
+        width: 100%;
+        padding: 0 1rem;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="app"></div>
+
+  <script>
+    // Puzzle levels - each level has a grid size and endpoint pairs
+    const LEVELS = [
+      {
+        size: 5,
+        pairs: [
+          { color: 1, points: [[0, 0], [2, 2]] },
+          { color: 2, points: [[0, 4], [4, 4]] },
+          { color: 3, points: [[4, 0], [2, 4]] },
+        ]
+      },
+      {
+        size: 5,
+        pairs: [
+          { color: 1, points: [[0, 0], [4, 2]] },
+          { color: 2, points: [[0, 2], [2, 4]] },
+          { color: 3, points: [[2, 0], [4, 4]] },
+          { color: 4, points: [[4, 0], [0, 4]] },
+        ]
+      },
+      {
+        size: 5,
+        pairs: [
+          { color: 1, points: [[0, 0], [2, 3]] },
+          { color: 2, points: [[1, 0], [4, 3]] },
+          { color: 3, points: [[3, 0], [1, 4]] },
+          { color: 4, points: [[4, 1], [3, 4]] },
+          { color: 5, points: [[0, 4], [2, 1]] },
+        ]
+      },
+      {
+        size: 6,
+        pairs: [
+          { color: 1, points: [[0, 0], [3, 3]] },
+          { color: 2, points: [[0, 5], [5, 5]] },
+          { color: 3, points: [[2, 0], [5, 3]] },
+          { color: 4, points: [[5, 0], [2, 5]] },
+          { color: 5, points: [[0, 2], [3, 5]] },
+        ]
+      },
+      {
+        size: 6,
+        pairs: [
+          { color: 1, points: [[0, 0], [2, 4]] },
+          { color: 2, points: [[1, 0], [5, 2]] },
+          { color: 3, points: [[3, 0], [0, 5]] },
+          { color: 4, points: [[5, 0], [3, 5]] },
+          { color: 5, points: [[0, 3], [4, 5]] },
+          { color: 6, points: [[5, 4], [2, 2]] },
+        ]
+      },
+      {
+        size: 7,
+        pairs: [
+          { color: 1, points: [[0, 0], [4, 4]] },
+          { color: 2, points: [[0, 6], [6, 6]] },
+          { color: 3, points: [[2, 0], [6, 4]] },
+          { color: 4, points: [[4, 0], [2, 6]] },
+          { color: 5, points: [[6, 0], [4, 6]] },
+          { color: 6, points: [[0, 3], [3, 6]] },
+        ]
+      },
+      {
+        size: 7,
+        pairs: [
+          { color: 1, points: [[0, 0], [3, 5]] },
+          { color: 2, points: [[2, 0], [6, 3]] },
+          { color: 3, points: [[4, 0], [1, 6]] },
+          { color: 4, points: [[6, 0], [4, 6]] },
+          { color: 5, points: [[0, 4], [5, 6]] },
+          { color: 6, points: [[6, 5], [3, 2]] },
+          { color: 7, points: [[0, 6], [2, 3]] },
+        ]
+      },
+      {
+        size: 8,
+        pairs: [
+          { color: 1, points: [[0, 0], [5, 5]] },
+          { color: 2, points: [[0, 7], [7, 7]] },
+          { color: 3, points: [[2, 0], [7, 5]] },
+          { color: 4, points: [[4, 0], [2, 7]] },
+          { color: 5, points: [[6, 0], [4, 7]] },
+          { color: 6, points: [[7, 0], [5, 7]] },
+          { color: 7, points: [[0, 4], [3, 7]] },
+        ]
+      },
+      {
+        size: 8,
+        pairs: [
+          { color: 1, points: [[0, 0], [4, 6]] },
+          { color: 2, points: [[2, 0], [7, 4]] },
+          { color: 3, points: [[5, 0], [1, 7]] },
+          { color: 4, points: [[7, 0], [5, 7]] },
+          { color: 5, points: [[0, 5], [6, 7]] },
+          { color: 6, points: [[7, 6], [4, 2]] },
+          { color: 7, points: [[0, 7], [2, 4]] },
+          { color: 8, points: [[3, 1], [7, 3]] },
+        ]
+      },
+      {
+        size: 8,
+        pairs: [
+          { color: 1, points: [[0, 0], [5, 6]] },
+          { color: 2, points: [[3, 0], [0, 7]] },
+          { color: 3, points: [[6, 0], [2, 7]] },
+          { color: 4, points: [[7, 1], [4, 7]] },
+          { color: 5, points: [[0, 4], [7, 7]] },
+          { color: 6, points: [[7, 4], [5, 2]] },
+          { color: 7, points: [[1, 5], [3, 2]] },
+          { color: 8, points: [[6, 6], [2, 3]] },
+        ]
+      },
+    ];
+
+    const COLORS = {
+      1: '#ff6b6b',
+      2: '#4ecdc4',
+      3: '#ffe66d',
+      4: '#95e1d3',
+      5: '#a29bfe',
+      6: '#fd79a8',
+      7: '#74b9ff',
+      8: '#ffeaa7',
+    };
+
+    class FlowGame {
+      constructor() {
+        this.currentLevel = parseInt(localStorage.getItem('flowLevel')) || 0;
+        this.completedLevels = new Set(JSON.parse(localStorage.getItem('flowCompleted') || '[]'));
+        this.moves = 0;
+        this.paths = {};
+        this.currentPath = null;
+        this.isDrawing = false;
+        this.showingCompletion = false;
+        
+        this.render();
+        this.setupLevel();
+      }
+
+      getColor(colorId) {
+        return COLORS[colorId] || '#ffffff';
+      }
+
+      render() {
+        const app = document.getElementById('app');
+        const level = LEVELS[this.currentLevel];
+        
+        app.innerHTML = `
+          <div class="header">
+            <h1 class="title">Flow Connect</h1>
+            <p class="level-info">Level ${this.currentLevel + 1} of ${LEVELS.length}</p>
+          </div>
+          
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-label">Moves</span>
+              <span class="stat-value" id="moves">${this.moves}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Flows</span>
+              <span class="stat-value" id="flows">0/${level.pairs.length}</span>
+            </div>
+          </div>
+
+          <div class="flow-count" id="flowIndicators">
+            ${level.pairs.map(p => `
+              <div class="flow-indicator" style="background: ${this.getColor(p.color)}; color: ${this.getColor(p.color)}" data-color="${p.color}"></div>
+            `).join('')}
+          </div>
+          
+          <div class="grid-wrapper">
+            <div class="grid" id="grid" style="grid-template-columns: repeat(${level.size}, 1fr)">
+              ${this.renderCells(level)}
+            </div>
+            <canvas id="pathCanvas"></canvas>
+          </div>
+          
+          <p class="instructions">Connect matching colors by drawing paths. Fill the entire grid to complete the level.</p>
+          
+          <div class="controls">
+            <button class="btn btn-secondary" id="resetBtn">Reset</button>
+            <button class="btn btn-primary" id="levelsBtn">Levels</button>
+          </div>
+        `;
+
+        this.setupEventListeners();
+      }
+
+      renderCells(level) {
+        let cells = '';
+        for (let y = 0; y < level.size; y++) {
+          for (let x = 0; x < level.size; x++) {
+            const endpoint = this.getEndpoint(level, x, y);
+            cells += `
+              <div class="cell" data-x="${x}" data-y="${y}">
+                ${endpoint ? `<div class="endpoint" style="background: ${this.getColor(endpoint)}; --endpoint-color: ${this.getColor(endpoint)}"></div>` : ''}
+              </div>
+            `;
+          }
+        }
+        return cells;
+      }
+
+      getEndpoint(level, x, y) {
+        for (const pair of level.pairs) {
+          for (const point of pair.points) {
+            if (point[0] === x && point[1] === y) {
+              return pair.color;
+            }
+          }
+        }
+        return null;
+      }
+
+      setupLevel() {
+        const level = LEVELS[this.currentLevel];
+        this.paths = {};
+        this.moves = 0;
+        
+        // Initialize paths for each color
+        for (const pair of level.pairs) {
+          this.paths[pair.color] = [];
+        }
+
+        this.resizeCanvas();
+        this.updateDisplay();
+      }
+
+      resizeCanvas() {
+        const grid = document.getElementById('grid');
+        const canvas = document.getElementById('pathCanvas');
+        if (!grid || !canvas) return;
+        
+        canvas.width = grid.offsetWidth;
+        canvas.height = grid.offsetHeight;
+      }
+
+      setupEventListeners() {
+        const grid = document.getElementById('grid');
+        const resetBtn = document.getElementById('resetBtn');
+        const levelsBtn = document.getElementById('levelsBtn');
+
+        // Touch events
+        grid.addEventListener('touchstart', (e) => this.handleStart(e), { passive: false });
+        grid.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
+        grid.addEventListener('touchend', (e) => this.handleEnd(e));
+        grid.addEventListener('touchcancel', (e) => this.handleEnd(e));
+
+        // Mouse events
+        grid.addEventListener('mousedown', (e) => this.handleStart(e));
+        grid.addEventListener('mousemove', (e) => this.handleMove(e));
+        grid.addEventListener('mouseup', (e) => this.handleEnd(e));
+        grid.addEventListener('mouseleave', (e) => this.handleEnd(e));
+
+        resetBtn.addEventListener('click', () => {
+          this.setupLevel();
+          this.render();
+          this.setupLevel();
+        });
+
+        levelsBtn.addEventListener('click', () => this.showLevelSelect());
+
+        window.addEventListener('resize', () => this.resizeCanvas());
+      }
+
+      getCellFromEvent(e) {
+        const touch = e.touches ? e.touches[0] : e;
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!element) return null;
+        
+        const cell = element.closest('.cell');
+        if (!cell) return null;
+        
+        return {
+          x: parseInt(cell.dataset.x),
+          y: parseInt(cell.dataset.y),
+          element: cell
+        };
+      }
+
+      handleStart(e) {
+        e.preventDefault();
+        const cell = this.getCellFromEvent(e);
+        if (!cell) return;
+
+        const level = LEVELS[this.currentLevel];
+        const endpoint = this.getEndpoint(level, cell.x, cell.y);
+        
+        // Check if clicking on an endpoint or existing path
+        let startColor = endpoint;
+        
+        if (!startColor) {
+          // Check if there's a path at this cell
+          for (const [color, path] of Object.entries(this.paths)) {
+            const idx = path.findIndex(p => p.x === cell.x && p.y === cell.y);
+            if (idx !== -1) {
+              startColor = parseInt(color);
+              // Truncate path from this point
+              this.paths[color] = path.slice(0, idx);
+              break;
+            }
+          }
+        }
+
+        if (startColor) {
+          this.isDrawing = true;
+          this.currentPath = {
+            color: startColor,
+            cells: [...(this.paths[startColor] || [])]
+          };
+          
+          // If starting from endpoint, initialize path
+          if (endpoint && this.currentPath.cells.length === 0) {
+            this.currentPath.cells.push({ x: cell.x, y: cell.y });
+          } else if (endpoint) {
+            // Check if this is the other endpoint
+            const pair = level.pairs.find(p => p.color === endpoint);
+            const isStart = pair.points[0][0] === cell.x && pair.points[0][1] === cell.y;
+            if (!isStart && this.currentPath.cells.length > 0) {
+              // Complete the path
+              this.currentPath.cells.push({ x: cell.x, y: cell.y });
+            } else {
+              // Starting fresh from this endpoint
+              this.currentPath.cells = [{ x: cell.x, y: cell.y }];
+            }
+          }
+          
+          this.paths[startColor] = this.currentPath.cells;
+          this.moves++;
+          this.drawPaths();
+          this.updateDisplay();
+        }
+      }
+
+      handleMove(e) {
+        if (!this.isDrawing || !this.currentPath) return;
+        e.preventDefault();
+        
+        const cell = this.getCellFromEvent(e);
+        if (!cell) return;
+
+        const lastCell = this.currentPath.cells[this.currentPath.cells.length - 1];
+        if (!lastCell) return;
+        
+        // Check if adjacent
+        const dx = Math.abs(cell.x - lastCell.x);
+        const dy = Math.abs(cell.y - lastCell.y);
+        if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+          // Check if backtracking
+          if (this.currentPath.cells.length >= 2) {
+            const prevCell = this.currentPath.cells[this.currentPath.cells.length - 2];
+            if (prevCell.x === cell.x && prevCell.y === cell.y) {
+              this.currentPath.cells.pop();
+              this.paths[this.currentPath.color] = this.currentPath.cells;
+              this.drawPaths();
+              return;
+            }
+          }
+
+          // Check if cell is already in current path (not the endpoint we're heading to)
+          const level = LEVELS[this.currentLevel];
+          const pair = level.pairs.find(p => p.color === this.currentPath.color);
+          const isOtherEndpoint = pair && 
+            ((pair.points[1][0] === cell.x && pair.points[1][1] === cell.y) ||
+             (pair.points[0][0] === cell.x && pair.points[0][1] === cell.y && this.currentPath.cells.length > 1));
+
+          const inCurrentPath = this.currentPath.cells.some(c => c.x === cell.x && c.y === cell.y);
+          if (inCurrentPath && !isOtherEndpoint) return;
+
+          // Check if cell is occupied by another path
+          for (const [color, path] of Object.entries(this.paths)) {
+            if (parseInt(color) === this.currentPath.color) continue;
+            const occupied = path.some(c => c.x === cell.x && c.y === cell.y);
+            if (occupied) {
+              // Clear that path from this point
+              const idx = path.findIndex(c => c.x === cell.x && c.y === cell.y);
+              this.paths[color] = path.slice(0, idx);
+            }
+          }
+
+          this.currentPath.cells.push({ x: cell.x, y: cell.y });
+          this.paths[this.currentPath.color] = this.currentPath.cells;
+          this.drawPaths();
+          this.updateDisplay();
+          
+          // Check if reached other endpoint
+          if (isOtherEndpoint && this.currentPath.cells.length > 1) {
+            this.checkCompletion();
+          }
+        }
+      }
+
+      handleEnd(e) {
+        this.isDrawing = false;
+        this.currentPath = null;
+      }
+
+      drawPaths() {
+        const canvas = document.getElementById('pathCanvas');
+        const grid = document.getElementById('grid');
+        if (!canvas || !grid) return;
+
+        const ctx = canvas.getContext('2d');
+        const level = LEVELS[this.currentLevel];
+        const cellSize = grid.offsetWidth / level.size;
+        const gap = 4;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (const [color, path] of Object.entries(this.paths)) {
+          if (path.length < 1) continue;
+
+          ctx.strokeStyle = this.getColor(parseInt(color));
+          ctx.lineWidth = cellSize * 0.4;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+
+          ctx.beginPath();
+          for (let i = 0; i < path.length; i++) {
+            const x = path[i].x * (cellSize + gap) + cellSize / 2 + gap / 2;
+            const y = path[i].y * (cellSize + gap) + cellSize / 2 + gap / 2;
+            
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.stroke();
+        }
+      }
+
+      updateDisplay() {
+        const movesEl = document.getElementById('moves');
+        const flowsEl = document.getElementById('flows');
+        const level = LEVELS[this.currentLevel];
+        
+        if (movesEl) movesEl.textContent = this.moves;
+        
+        let completedFlows = 0;
+        for (const pair of level.pairs) {
+          if (this.isPathComplete(pair)) {
+            completedFlows++;
+            const indicator = document.querySelector(`.flow-indicator[data-color="${pair.color}"]`);
+            if (indicator) indicator.classList.add('complete');
+          } else {
+            const indicator = document.querySelector(`.flow-indicator[data-color="${pair.color}"]`);
+            if (indicator) indicator.classList.remove('complete');
+          }
+        }
+        
+        if (flowsEl) flowsEl.textContent = `${completedFlows}/${level.pairs.length}`;
+      }
+
+      isPathComplete(pair) {
+        const path = this.paths[pair.color];
+        if (!path || path.length < 2) return false;
+        
+        const start = path[0];
+        const end = path[path.length - 1];
+        
+        const [p1, p2] = pair.points;
+        
+        return (
+          (start.x === p1[0] && start.y === p1[1] && end.x === p2[0] && end.y === p2[1]) ||
+          (start.x === p2[0] && start.y === p2[1] && end.x === p1[0] && end.y === p1[1])
+        );
+      }
+
+      checkCompletion() {
+        const level = LEVELS[this.currentLevel];
+        
+        // Check all paths complete
+        for (const pair of level.pairs) {
+          if (!this.isPathComplete(pair)) return false;
+        }
+
+        // Check grid is full
+        const totalCells = level.size * level.size;
+        let filledCells = 0;
+        for (const path of Object.values(this.paths)) {
+          filledCells += path.length;
+        }
+
+        if (filledCells === totalCells) {
+          this.showCompletion();
+          return true;
+        }
+        
+        return false;
+      }
+
+      showCompletion() {
+        if (this.showingCompletion) return;
+        this.showingCompletion = true;
+        
+        this.completedLevels.add(this.currentLevel);
+        localStorage.setItem('flowCompleted', JSON.stringify([...this.completedLevels]));
+
+        setTimeout(() => {
+          const overlay = document.createElement('div');
+          overlay.className = 'completion-overlay';
+          overlay.innerHTML = `
+            <div class="completion-text">Level Complete!</div>
+            <div class="stats">
+              <div class="stat">
+                <span class="stat-label">Moves</span>
+                <span class="stat-value">${this.moves}</span>
+              </div>
+            </div>
+            <div class="controls">
+              ${this.currentLevel < LEVELS.length - 1 ? 
+                '<button class="btn btn-primary" id="nextLevelBtn">Next Level</button>' : 
+                '<button class="btn btn-primary" id="nextLevelBtn">Play Again</button>'
+              }
+              <button class="btn btn-secondary" id="selectLevelBtn">Select Level</button>
+            </div>
+          `;
+          document.body.appendChild(overlay);
+
+          document.getElementById('nextLevelBtn').addEventListener('click', () => {
+            overlay.remove();
+            this.showingCompletion = false;
+            if (this.currentLevel < LEVELS.length - 1) {
+              this.currentLevel++;
+            } else {
+              this.currentLevel = 0;
+            }
+            localStorage.setItem('flowLevel', this.currentLevel);
+            this.render();
+            this.setupLevel();
+          });
+
+          document.getElementById('selectLevelBtn').addEventListener('click', () => {
+            overlay.remove();
+            this.showingCompletion = false;
+            this.showLevelSelect();
+          });
+        }, 300);
+      }
+
+      showLevelSelect() {
+        const overlay = document.createElement('div');
+        overlay.className = 'completion-overlay';
+        overlay.innerHTML = `
+          <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Select Level</h2>
+          <div class="level-select">
+            ${LEVELS.map((_, i) => `
+              <button class="level-btn ${this.completedLevels.has(i) ? 'completed' : ''} ${i === this.currentLevel ? 'current' : ''}" data-level="${i}">
+                ${i + 1}
+              </button>
+            `).join('')}
+          </div>
+          <button class="btn btn-secondary" id="closeLevels" style="margin-top: 1.5rem;">Close</button>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelectorAll('.level-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.currentLevel = parseInt(btn.dataset.level);
+            localStorage.setItem('flowLevel', this.currentLevel);
+            overlay.remove();
+            this.render();
+            this.setupLevel();
+          });
+        });
+
+        document.getElementById('closeLevels').addEventListener('click', () => {
+          overlay.remove();
+        });
+      }
+    }
+
+    // Initialize game
+    const game = new FlowGame();
+  </script>
+</body>
+</html>
