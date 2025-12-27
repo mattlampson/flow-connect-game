@@ -344,7 +344,7 @@
 </head>
 <body>
   <div class="game-container" id="app"></div>
-  <div class="version">v3.0-alpha</div>
+  <div class="version">v3.0-alpha.1</div>
 
   <script>
     // ============================================================
@@ -869,11 +869,11 @@
         // Redraw with solution paths
         this.drawPaths();
         
-        // Update display
+        // Update display (will show all flows as complete)
         this.updateDisplay();
         
-        // Check completion (should trigger win screen)
-        this.checkCompletion();
+        // Don't trigger completion overlay - let user see the solution
+        // They can click Reset or Levels when done
       }
     }
 
