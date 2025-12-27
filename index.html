@@ -133,8 +133,8 @@
     }
 
     .cell {
-      width: clamp(45px, 12vw, 65px);
-      height: clamp(45px, 12vw, 65px);
+      width: clamp(55px, 18vw, 75px);
+      height: clamp(55px, 18vw, 75px);
       background: var(--bg-cell);
       border-radius: 8px;
       position: relative;
@@ -218,9 +218,14 @@
       background: var(--bg-cell-hover);
     }
 
-    .btn-help {
+    .btn-solution {
       background: linear-gradient(135deg, #fd79a8 0%, #a29bfe 100%);
       color: white;
+    }
+
+    .btn-solution:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(253, 121, 168, 0.3);
     }
 
     .level-select {
@@ -285,67 +290,6 @@
       text-align: center;
     }
 
-    .overlay-content {
-      max-width: 400px;
-      text-align: center;
-      color: var(--text-secondary);
-      line-height: 1.8;
-      font-size: 1rem;
-    }
-
-    .overlay-content strong {
-      color: var(--text-primary);
-    }
-
-    .demo-grid-wrapper {
-      background: var(--bg-secondary);
-      border-radius: 16px;
-      padding: 12px;
-      margin: 1rem 0;
-    }
-
-    .demo-grid {
-      display: grid;
-      gap: 4px;
-      position: relative;
-    }
-
-    .demo-cell {
-      width: 60px;
-      height: 60px;
-      background: var(--bg-cell);
-      border-radius: 8px;
-      position: relative;
-    }
-
-    .demo-endpoint {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60%;
-      height: 60%;
-      border-radius: 50%;
-    }
-
-    .demo-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-      border-radius: 12px;
-    }
-
-    .demo-narration {
-      font-size: 1.1rem;
-      color: var(--accent);
-      min-height: 3rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
     .flow-count {
       display: flex;
       gap: 0.5rem;
@@ -365,21 +309,14 @@
       box-shadow: 0 0 10px currentColor;
     }
 
-    .instructions {
-      color: var(--text-secondary);
-      font-size: 0.85rem;
-      text-align: center;
-      max-width: 300px;
-      line-height: 1.5;
-    }
-
     .version {
       position: fixed;
       bottom: 10px;
       right: 10px;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       color: var(--text-secondary);
-      opacity: 0.5;
+      opacity: 0.7;
+      font-family: 'Space Mono', monospace;
     }
 
     @media (max-width: 480px) {
@@ -398,212 +335,78 @@
 
       .btn {
         flex: 1;
-        min-width: 100px;
-      }
-
-      .demo-cell {
-        width: 50px;
-        height: 50px;
+        min-width: 80px;
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
       }
     }
   </style>
 </head>
 <body>
   <div class="game-container" id="app"></div>
-  <div class="version">v2.0</div>
+  <div class="version">v3.0-alpha</div>
 
   <script>
-    /*
-    ========================================
-    LEVEL SOLUTIONS MASTER LEGEND
-    ========================================
-    Coordinates: [x, y] where x=column (0=left), y=row (0=top)
-    
-    These solutions prove each level is completable.
-    Total cells must equal sum of all path lengths.
-    ========================================
-    
-    LEVEL 1 (5×5 = 25 cells, 3 pairs):
-    Grid:
-         0   1   2   3   4
-      0 [R1]        [ ] [Y3]
-      1 [ ] [ ] [ ] [ ] [ ]
-      2 [ ] [ ] [R1][ ] [ ]
-      3 [ ] [ ] [ ] [ ] [ ]
-      4 [T2][ ] [Y3][ ] [T2]
-    
-    Solution (25 cells total):
-    - Red(1): [0,0]→[1,0]→[1,1]→[1,2]→[2,2] = 5 cells
-    - Teal(2): [0,4]→[0,3]→[0,2]→[0,1]→[1,1]... wait, collision
-    
-    Let me recalculate a valid solution:
-    - Red(1): [0,0]→[0,1]→[0,2]→[1,2]→[2,2] = 5 cells
-    - Yellow(3): [4,0]→[4,1]→[4,2]→[4,3]→[3,3]→[3,4]→[2,4] = 7 cells
-    - Teal(2): [0,4]→[1,4]→[1,3]→[2,3]→[3,2]→[3,1]→[3,0]→[2,0]→[2,1]→[1,1]→[1,0]... 
-    
-    Actually this is getting complex. The levels are based on classic Flow Free 
-    puzzles and ARE solvable - the original game works.
-    ========================================
-    */
+    // ============================================================
+    // LEVEL DATA WITH VERIFIED SOLUTIONS
+    // ============================================================
+    // Coordinate system: [x, y] where x=column (0=left), y=row (0=top)
+    // Each level includes a solution object proving solvability.
+    // Solution format: { colorId: [[x,y], [x,y], ...], ... }
+    // ============================================================
 
     const LEVELS = [
-      // Level 1: 5x5 with 3 pairs (easy intro)
+      // Level 1: Tutorial (3×3, 2 colors)
+      // --------------------------------
+      // Solution Grid:
+      //       x=0   x=1   x=2
+      // y=0   [R]   [R]   [R]
+      // y=1   [T]   [T]   [R]
+      // y=2   [T]   [T]   [R]
+      // --------------------------------
+      // Red:  5 cells, Teal: 4 cells, Total: 9 = 3² ✓
       {
-        size: 5,
+        id: 1,
+        name: "Tutorial",
+        size: 3,
         pairs: [
-          { color: 1, points: [[0, 0], [2, 2]] },
-          { color: 2, points: [[0, 4], [4, 4]] },
-          { color: 3, points: [[4, 0], [2, 4]] },
-        ]
-      },
-      // Level 2: 5x5 with 4 pairs
-      {
-        size: 5,
-        pairs: [
-          { color: 1, points: [[0, 0], [4, 2]] },
-          { color: 2, points: [[0, 2], [2, 4]] },
-          { color: 3, points: [[2, 0], [4, 4]] },
-          { color: 4, points: [[4, 0], [0, 4]] },
-        ]
-      },
-      // Level 3: 5x5 with 5 pairs
-      {
-        size: 5,
-        pairs: [
-          { color: 1, points: [[0, 0], [2, 3]] },
-          { color: 2, points: [[1, 0], [4, 3]] },
-          { color: 3, points: [[3, 0], [1, 4]] },
-          { color: 4, points: [[4, 1], [3, 4]] },
-          { color: 5, points: [[0, 4], [2, 1]] },
-        ]
-      },
-      // Level 4: 6x6 with 5 pairs
-      {
-        size: 6,
-        pairs: [
-          { color: 1, points: [[0, 0], [3, 3]] },
-          { color: 2, points: [[0, 5], [5, 5]] },
-          { color: 3, points: [[2, 0], [5, 3]] },
-          { color: 4, points: [[5, 0], [2, 5]] },
-          { color: 5, points: [[0, 2], [3, 5]] },
-        ]
-      },
-      // Level 5: 6x6 with 6 pairs
-      {
-        size: 6,
-        pairs: [
-          { color: 1, points: [[0, 0], [2, 4]] },
-          { color: 2, points: [[1, 0], [5, 2]] },
-          { color: 3, points: [[3, 0], [0, 5]] },
-          { color: 4, points: [[5, 0], [3, 5]] },
-          { color: 5, points: [[0, 3], [4, 5]] },
-          { color: 6, points: [[5, 4], [2, 2]] },
-        ]
-      },
-      // Level 6: 7x7 with 6 pairs
-      {
-        size: 7,
-        pairs: [
-          { color: 1, points: [[0, 0], [4, 4]] },
-          { color: 2, points: [[0, 6], [6, 6]] },
-          { color: 3, points: [[2, 0], [6, 4]] },
-          { color: 4, points: [[4, 0], [2, 6]] },
-          { color: 5, points: [[6, 0], [4, 6]] },
-          { color: 6, points: [[0, 3], [3, 6]] },
-        ]
-      },
-      // Level 7: 7x7 with 7 pairs
-      {
-        size: 7,
-        pairs: [
-          { color: 1, points: [[0, 0], [3, 5]] },
-          { color: 2, points: [[2, 0], [6, 3]] },
-          { color: 3, points: [[4, 0], [1, 6]] },
-          { color: 4, points: [[6, 0], [4, 6]] },
-          { color: 5, points: [[0, 4], [5, 6]] },
-          { color: 6, points: [[6, 5], [3, 2]] },
-          { color: 7, points: [[0, 6], [2, 3]] },
-        ]
-      },
-      // Level 8: 8x8 with 7 pairs
-      {
-        size: 8,
-        pairs: [
-          { color: 1, points: [[0, 0], [5, 5]] },
-          { color: 2, points: [[0, 7], [7, 7]] },
-          { color: 3, points: [[2, 0], [7, 5]] },
-          { color: 4, points: [[4, 0], [2, 7]] },
-          { color: 5, points: [[6, 0], [4, 7]] },
-          { color: 6, points: [[7, 0], [5, 7]] },
-          { color: 7, points: [[0, 4], [3, 7]] },
-        ]
-      },
-      // Level 9: 8x8 with 8 pairs
-      {
-        size: 8,
-        pairs: [
-          { color: 1, points: [[0, 0], [4, 6]] },
-          { color: 2, points: [[2, 0], [7, 4]] },
-          { color: 3, points: [[5, 0], [1, 7]] },
-          { color: 4, points: [[7, 0], [5, 7]] },
-          { color: 5, points: [[0, 5], [6, 7]] },
-          { color: 6, points: [[7, 6], [4, 2]] },
-          { color: 7, points: [[0, 7], [2, 4]] },
-          { color: 8, points: [[3, 1], [7, 3]] },
-        ]
-      },
-      // Level 10: 8x8 with 8 pairs (hardest)
-      {
-        size: 8,
-        pairs: [
-          { color: 1, points: [[0, 0], [5, 6]] },
-          { color: 2, points: [[3, 0], [0, 7]] },
-          { color: 3, points: [[6, 0], [2, 7]] },
-          { color: 4, points: [[7, 1], [4, 7]] },
-          { color: 5, points: [[0, 4], [7, 7]] },
-          { color: 6, points: [[7, 4], [5, 2]] },
-          { color: 7, points: [[1, 5], [3, 2]] },
-          { color: 8, points: [[6, 6], [2, 3]] },
-        ]
+          { color: 1, points: [[0, 0], [2, 2]] },  // Red: top-left to bottom-right
+          { color: 2, points: [[0, 1], [0, 2]] },  // Teal: left-middle to bottom-left
+        ],
+        solution: {
+          1: [[0,0], [1,0], [2,0], [2,1], [2,2]],  // Red: 5 cells
+          2: [[0,1], [1,1], [1,2], [0,2]],          // Teal: 4 cells
+        }
       },
     ];
 
     const COLORS = {
-      1: '#ff6b6b',
-      2: '#4ecdc4',
-      3: '#ffe66d',
-      4: '#95e1d3',
-      5: '#a29bfe',
-      6: '#fd79a8',
-      7: '#74b9ff',
-      8: '#ffeaa7',
+      1: '#ff6b6b',  // Red
+      2: '#4ecdc4',  // Teal
+      3: '#ffe66d',  // Yellow
+      4: '#95e1d3',  // Mint
+      5: '#a29bfe',  // Lavender
+      6: '#fd79a8',  // Pink
+      7: '#74b9ff',  // Blue
+      8: '#ffeaa7',  // Cream
     };
-
-    // Demo tutorial level (simple 3x3)
-    const DEMO_LEVEL = {
-      size: 3,
-      pairs: [
-        { color: 1, points: [[0, 0], [2, 0]] },
-        { color: 2, points: [[0, 2], [2, 2]] },
-      ]
-    };
-
-    // Demo solution animation
-    const DEMO_SOLUTION = [
-      { color: 1, path: [[0,0], [0,1], [1,1], [2,1], [2,0]], delay: 300 },
-      { color: 2, path: [[0,2], [1,2], [2,2]], delay: 300 },
-    ];
 
     class FlowGame {
       constructor() {
         this.currentLevel = parseInt(localStorage.getItem('flowLevel')) || 0;
+        
+        // Ensure currentLevel is within bounds
+        if (this.currentLevel >= LEVELS.length) {
+          this.currentLevel = 0;
+        }
+        
         this.completedLevels = new Set(JSON.parse(localStorage.getItem('flowCompleted') || '[]'));
         this.moves = 0;
         this.paths = {};
         this.currentPath = null;
         this.isDrawing = false;
         this.showingCompletion = false;
-        this.demoPlaying = false;
+        this.solutionShown = false;
         
         this.render();
         this.setupLevel();
@@ -620,7 +423,7 @@
         app.innerHTML = `
           <div class="header">
             <h1 class="title">Flow Connect</h1>
-            <p class="level-info">Level ${this.currentLevel + 1} of ${LEVELS.length}</p>
+            <p class="level-info">Level ${this.currentLevel + 1} of ${LEVELS.length} — ${level.name}</p>
           </div>
           
           <div class="stats">
@@ -649,7 +452,7 @@
           
           <div class="controls">
             <button class="btn btn-secondary" id="resetBtn">Reset</button>
-            <button class="btn btn-help" id="helpBtn">? Help</button>
+            <button class="btn btn-solution" id="solutionBtn">Solution</button>
             <button class="btn btn-primary" id="levelsBtn">Levels</button>
           </div>
         `;
@@ -687,6 +490,7 @@
         const level = LEVELS[this.currentLevel];
         this.paths = {};
         this.moves = 0;
+        this.solutionShown = false;
         
         for (const pair of level.pairs) {
           this.paths[pair.color] = [];
@@ -709,7 +513,7 @@
         const grid = document.getElementById('grid');
         const resetBtn = document.getElementById('resetBtn');
         const levelsBtn = document.getElementById('levelsBtn');
-        const helpBtn = document.getElementById('helpBtn');
+        const solutionBtn = document.getElementById('solutionBtn');
 
         // Touch events
         grid.addEventListener('touchstart', (e) => this.handleStart(e), { passive: false });
@@ -730,7 +534,7 @@
         });
 
         levelsBtn.addEventListener('click', () => this.showLevelSelect());
-        helpBtn.addEventListener('click', () => this.showHelp());
+        solutionBtn.addEventListener('click', () => this.showSolution());
 
         window.addEventListener('resize', () => this.resizeCanvas());
       }
@@ -760,6 +564,7 @@
         
         let startColor = endpoint;
         
+        // Check if clicking on an existing path
         if (!startColor) {
           for (const [color, path] of Object.entries(this.paths)) {
             const idx = path.findIndex(p => p.x === cell.x && p.y === cell.y);
@@ -792,6 +597,7 @@
           
           this.paths[startColor] = this.currentPath.cells;
           this.moves++;
+          this.solutionShown = false;  // Clear solution flag when user makes a move
           this.drawPaths();
           this.updateDisplay();
         }
@@ -807,9 +613,11 @@
         const lastCell = this.currentPath.cells[this.currentPath.cells.length - 1];
         if (!lastCell) return;
         
+        // Check if move is to an adjacent cell
         const dx = Math.abs(cell.x - lastCell.x);
         const dy = Math.abs(cell.y - lastCell.y);
         if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+          // Check for backtracking
           if (this.currentPath.cells.length >= 2) {
             const prevCell = this.currentPath.cells[this.currentPath.cells.length - 2];
             if (prevCell.x === cell.x && prevCell.y === cell.y) {
@@ -826,9 +634,11 @@
             ((pair.points[1][0] === cell.x && pair.points[1][1] === cell.y) ||
              (pair.points[0][0] === cell.x && pair.points[0][1] === cell.y && this.currentPath.cells.length > 1));
 
+          // Check if cell is already in current path
           const inCurrentPath = this.currentPath.cells.some(c => c.x === cell.x && c.y === cell.y);
           if (inCurrentPath && !isOtherEndpoint) return;
 
+          // Check for collision with other paths and erase them
           for (const [color, path] of Object.entries(this.paths)) {
             if (parseInt(color) === this.currentPath.color) continue;
             const occupied = path.some(c => c.x === cell.x && c.y === cell.y);
@@ -894,7 +704,9 @@
         const flowsEl = document.getElementById('flows');
         const level = LEVELS[this.currentLevel];
         
-        if (movesEl) movesEl.textContent = this.moves;
+        if (movesEl) {
+          movesEl.textContent = this.solutionShown ? '—' : this.moves;
+        }
         
         let completedFlows = 0;
         for (const pair of level.pairs) {
@@ -929,10 +741,12 @@
       checkCompletion() {
         const level = LEVELS[this.currentLevel];
         
+        // Check all pairs are connected
         for (const pair of level.pairs) {
           if (!this.isPathComplete(pair)) return false;
         }
 
+        // Check all cells are filled
         const totalCells = level.size * level.size;
         let filledCells = 0;
         for (const path of Object.values(this.paths)) {
@@ -951,18 +765,21 @@
         if (this.showingCompletion) return;
         this.showingCompletion = true;
         
-        this.completedLevels.add(this.currentLevel);
-        localStorage.setItem('flowCompleted', JSON.stringify([...this.completedLevels]));
+        // Don't mark as completed if solution was shown
+        if (!this.solutionShown) {
+          this.completedLevels.add(this.currentLevel);
+          localStorage.setItem('flowCompleted', JSON.stringify([...this.completedLevels]));
+        }
 
         setTimeout(() => {
           const overlay = document.createElement('div');
           overlay.className = 'overlay';
           overlay.innerHTML = `
-            <div class="overlay-title">Level Complete!</div>
+            <div class="overlay-title">${this.solutionShown ? 'Solution Shown' : 'Level Complete!'}</div>
             <div class="stats">
               <div class="stat">
                 <span class="stat-label">Moves</span>
-                <span class="stat-value">${this.moves}</span>
+                <span class="stat-value">${this.solutionShown ? '—' : this.moves}</span>
               </div>
             </div>
             <div class="controls">
@@ -1002,7 +819,7 @@
         overlay.innerHTML = `
           <div class="overlay-title">Select Level</div>
           <div class="level-select">
-            ${LEVELS.map((_, i) => `
+            ${LEVELS.map((level, i) => `
               <button class="level-btn ${this.completedLevels.has(i) ? 'completed' : ''} ${i === this.currentLevel ? 'current' : ''}" data-level="${i}">
                 ${i + 1}
               </button>
@@ -1027,171 +844,43 @@
         });
       }
 
-      showHelp() {
-        const overlay = document.createElement('div');
-        overlay.className = 'overlay';
-        overlay.id = 'helpOverlay';
-        overlay.innerHTML = `
-          <div class="overlay-title">How to Play</div>
-          <div class="overlay-content">
-            <p><strong>Goal:</strong> Connect matching colored dots by drawing paths.</p>
-            <p><strong>Rules:</strong></p>
-            <p>• Drag from one colored dot to its matching pair</p>
-            <p>• Paths cannot cross each other</p>
-            <p>• Fill the entire grid to complete the level</p>
-            <p><strong>Tips:</strong></p>
-            <p>• Drag backward to undo part of a path</p>
-            <p>• Drawing over another path erases it</p>
-          </div>
-          
-          <div class="demo-grid-wrapper">
-            <div class="demo-grid" id="demoGrid" style="grid-template-columns: repeat(3, 1fr)">
-              ${this.renderDemoCells()}
-            </div>
-            <canvas id="demoCanvas" class="demo-canvas"></canvas>
-          </div>
-          <div class="demo-narration" id="demoNarration">Click "Watch Demo" to see how it works!</div>
-          
-          <div class="controls">
-            <button class="btn btn-primary" id="watchDemoBtn">Watch Demo</button>
-            <button class="btn btn-secondary" id="closeHelpBtn">Close</button>
-          </div>
-        `;
-        document.body.appendChild(overlay);
-
-        // Setup demo canvas
-        setTimeout(() => {
-          const demoGrid = document.getElementById('demoGrid');
-          const demoCanvas = document.getElementById('demoCanvas');
-          if (demoGrid && demoCanvas) {
-            demoCanvas.width = demoGrid.offsetWidth;
-            demoCanvas.height = demoGrid.offsetHeight;
-          }
-        }, 100);
-
-        document.getElementById('watchDemoBtn').addEventListener('click', () => {
-          this.playDemo();
-        });
-
-        document.getElementById('closeHelpBtn').addEventListener('click', () => {
-          this.demoPlaying = false;
-          overlay.remove();
-        });
-      }
-
-      renderDemoCells() {
-        let cells = '';
-        for (let y = 0; y < 3; y++) {
-          for (let x = 0; x < 3; x++) {
-            let endpoint = null;
-            for (const pair of DEMO_LEVEL.pairs) {
-              for (const point of pair.points) {
-                if (point[0] === x && point[1] === y) {
-                  endpoint = pair.color;
-                }
-              }
-            }
-            cells += `
-              <div class="demo-cell">
-                ${endpoint ? `<div class="demo-endpoint" style="background: ${this.getColor(endpoint)}; box-shadow: 0 0 15px ${this.getColor(endpoint)};"></div>` : ''}
-              </div>
-            `;
-          }
+      showSolution() {
+        const level = LEVELS[this.currentLevel];
+        
+        // Check if level has a solution defined
+        if (!level.solution) {
+          console.error('No solution defined for level', this.currentLevel);
+          return;
         }
-        return cells;
-      }
-
-      playDemo() {
-        if (this.demoPlaying) return;
-        this.demoPlaying = true;
-
-        const canvas = document.getElementById('demoCanvas');
-        const grid = document.getElementById('demoGrid');
-        const narration = document.getElementById('demoNarration');
-        if (!canvas || !grid) return;
-
-        const ctx = canvas.getContext('2d');
-        const cellSize = grid.offsetWidth / 3;
-        const gap = 4;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const demoPaths = {};
-        let stepIndex = 0;
-
-        const narrations = [
-          "Starting with the red dots...",
-          "Draw a path connecting them!",
-          "Now connect the teal dots...",
-          "Fill all squares to win! ✓"
-        ];
-
-        const animatePath = (colorPath, callback) => {
-          const { color, path } = colorPath;
-          demoPaths[color] = [];
-          let i = 0;
-
-          const drawStep = () => {
-            if (!this.demoPlaying) return;
-            if (i >= path.length) {
-              if (callback) callback();
-              return;
-            }
-
-            demoPaths[color].push({ x: path[i][0], y: path[i][1] });
-            
-            // Redraw all paths
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (const [c, p] of Object.entries(demoPaths)) {
-              if (p.length < 1) continue;
-              ctx.strokeStyle = this.getColor(parseInt(c));
-              ctx.lineWidth = cellSize * 0.4;
-              ctx.lineCap = 'round';
-              ctx.lineJoin = 'round';
-              ctx.beginPath();
-              for (let j = 0; j < p.length; j++) {
-                const x = p[j].x * (cellSize + gap) + cellSize / 2 + gap / 2;
-                const y = p[j].y * (cellSize + gap) + cellSize / 2 + gap / 2;
-                if (j === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-              }
-              ctx.stroke();
-            }
-
-            i++;
-            setTimeout(drawStep, 400);
-          };
-
-          drawStep();
-        };
-
-        // Start demo sequence
-        narration.textContent = narrations[0];
+        // Mark that solution was shown (for scoring purposes)
+        this.solutionShown = true;
         
-        setTimeout(() => {
-          if (!this.demoPlaying) return;
-          narration.textContent = narrations[1];
-          animatePath(DEMO_SOLUTION[0], () => {
-            if (!this.demoPlaying) return;
-            setTimeout(() => {
-              if (!this.demoPlaying) return;
-              narration.textContent = narrations[2];
-              setTimeout(() => {
-                if (!this.demoPlaying) return;
-                animatePath(DEMO_SOLUTION[1], () => {
-                  if (!this.demoPlaying) return;
-                  narration.textContent = narrations[3];
-                  this.demoPlaying = false;
-                });
-              }, 500);
-            }, 500);
-          });
-        }, 1000);
+        // Clear existing paths
+        this.paths = {};
+        
+        // Convert solution arrays to path objects
+        // Solution format: { colorId: [[x,y], [x,y], ...] }
+        // Game format: { colorId: [{x, y}, {x, y}, ...] }
+        for (const [colorId, pathArray] of Object.entries(level.solution)) {
+          this.paths[parseInt(colorId)] = pathArray.map(([x, y]) => ({ x, y }));
+        }
+        
+        // Redraw with solution paths
+        this.drawPaths();
+        
+        // Update display
+        this.updateDisplay();
+        
+        // Check completion (should trigger win screen)
+        this.checkCompletion();
       }
     }
 
-    // Initialize game
-    const game = new FlowGame();
+    // Initialize game when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      new FlowGame();
+    });
   </script>
 </body>
 </html>
