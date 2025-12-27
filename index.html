@@ -344,7 +344,7 @@
 </head>
 <body>
   <div class="game-container" id="app"></div>
-  <div class="version">v3.0-alpha.1</div>
+  <div class="version">v3.0-alpha.2</div>
 
   <script>
     // ============================================================
@@ -589,7 +589,14 @@
             const pair = level.pairs.find(p => p.color === endpoint);
             const isStart = pair.points[0][0] === cell.x && pair.points[0][1] === cell.y;
             if (!isStart && this.currentPath.cells.length > 0) {
-              this.currentPath.cells.push({ x: cell.x, y: cell.y });
+              // Only add endpoint if adjacent to last cell (prevent diagonal jumps)
+              const lastCell = this.currentPath.cells[this.currentPath.cells.length - 1];
+              const dx = Math.abs(cell.x - lastCell.x);
+              const dy = Math.abs(cell.y - lastCell.y);
+              if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                this.currentPath.cells.push({ x: cell.x, y: cell.y });
+              }
+              // If not adjacent, ignore click - user must drag to reach it
             } else {
               this.currentPath.cells = [{ x: cell.x, y: cell.y }];
             }
